@@ -1,5 +1,4 @@
-#ifndef SKY_NETWORK
-#define SKY_NETWORK
+#pragma once
 
 #include "sdk.hpp"
 #include "Shared/NetCode/vehicle.hpp"
@@ -7,6 +6,7 @@
 
 #include "main.hpp"
 #include "player.hpp"
+#include "packets.hpp"
 
 inline class PlayerSync final : public SingleNetworkInEventHandler
 {
@@ -32,10 +32,3 @@ inline class SpectatorSync final : public SingleNetworkInEventHandler
 {
     bool received(IPlayer &peer, NetworkBitStream &bs) override;
 } spectator_sync_;
-
-inline class TrailerSync final : public SingleNetworkInEventHandler
-{
-    bool received(IPlayer &peer, NetworkBitStream &bs) override;
-} trailer_sync_;
-
-#endif

@@ -13,7 +13,7 @@
 #define PROJECT_NAME "SKY"
 #define PROJECT_MAJOR 2
 #define PROJECT_MINOR 3
-#define PROJECT_PATCH 0
+#define PROJECT_PATCH 1
 
 inline void ShowPluginInfo()
 {

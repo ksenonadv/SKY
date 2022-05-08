@@ -29,7 +29,6 @@
 #include "types.hpp"
 #include <cassert>
 #include <cmath>
-#include <type_traits>
 
 constexpr int bitsToBytes(int bits)
 {
@@ -41,15 +40,14 @@ constexpr int bytesToBits(int bytes)
     return ((bytes) << 3);
 }
 
-class NetworkBitStream
-{
+class NetworkBitStream {
     /// Arbitrary size, just picking something likely to be larger than most packets
     constexpr static const size_t StackAllocationSize = 256;
     constexpr static const float CompressedVecMagnitudeEpsilon = 0.00001f;
 
 public:
     /// The version of the NetworkBitStream class; increased when breaking changes are introduced
-    constexpr static const int Version = 0;
+    constexpr static const int Version = 1;
 
     /// Default Constructor
     NetworkBitStream();
@@ -70,7 +68,7 @@ public:
     /// \param[in] _data An array of bytes.
     /// \param[in] lengthInBytes Size of the \a _data.
     /// \param[in] _copyData true or false to make a copy of \a _data or not.
-    NetworkBitStream(unsigned char *_data, unsigned int lengthInBytes, bool _copyData);
+    NetworkBitStream(unsigned char* _data, unsigned int lengthInBytes, bool _copyData);
 
     /// Destructor
     ~NetworkBitStream();
@@ -181,13 +179,13 @@ public:
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
     inline void writeArray(Span<T> data)
     {
-        Write(reinterpret_cast<const char *>(data.data()), data.size() * sizeof(T));
+        Write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T));
     }
 
     template <typename T, size_t S, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
     inline void writeArray(StaticArray<T, S> data)
     {
-        Write(reinterpret_cast<const char *>(data.data()), data.size() * sizeof(T));
+        Write(reinterpret_cast<const char*>(data.data()), data.size() * sizeof(T));
     }
 
     inline void writeCompressedPercentPair(Vector2 data)
@@ -205,10 +203,10 @@ public:
 
     void WriteCompressedStr(StringView data);
 
-    inline bool readBIT(bool &data);
+    inline bool readBIT(bool& data);
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readUINT8(T &data)
+    inline bool readUINT8(T& data)
     {
         uint8_t tmp;
         const bool res = Read(tmp);
@@ -217,7 +215,7 @@ public:
     }
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readUINT16(T &data)
+    inline bool readUINT16(T& data)
     {
         uint16_t tmp;
         const bool res = Read(tmp);
@@ -226,7 +224,7 @@ public:
     }
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readUINT32(T &data)
+    inline bool readUINT32(T& data)
     {
         uint32_t tmp;
         const bool res = Read(tmp);
@@ -235,7 +233,7 @@ public:
     }
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readUINT64(T &data)
+    inline bool readUINT64(T& data)
     {
         uint64_t tmp;
         const bool res = Read(tmp);
@@ -244,7 +242,7 @@ public:
     }
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readINT8(T &data)
+    inline bool readINT8(T& data)
     {
         int8_t tmp;
         const bool res = Read(tmp);
@@ -253,7 +251,7 @@ public:
     }
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readINT16(T &data)
+    inline bool readINT16(T& data)
     {
         int16_t tmp;
         const bool res = Read(tmp);
@@ -262,7 +260,7 @@ public:
     }
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readINT32(T &data)
+    inline bool readINT32(T& data)
     {
         int32_t tmp;
         const bool res = Read(tmp);
@@ -271,7 +269,7 @@ public:
     }
 
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
-    inline bool readINT64(T &data)
+    inline bool readINT64(T& data)
     {
         int64_t tmp;
         const bool res = Read(tmp);
@@ -279,45 +277,45 @@ public:
         return res;
     }
 
-    inline bool readDOUBLE(double &data)
+    inline bool readDOUBLE(double& data)
     {
         return Read(data);
     }
 
-    inline bool readFLOAT(float &data)
+    inline bool readFLOAT(float& data)
     {
         return Read(data);
     }
 
-    inline bool readVEC2(Vector2 &data)
+    inline bool readVEC2(Vector2& data)
     {
         return Read(data);
     }
 
-    inline bool readVEC3(Vector3 &data)
+    inline bool readVEC3(Vector3& data)
     {
         return Read(data);
     }
 
-    inline bool readVEC4(Vector4 &data)
+    inline bool readVEC4(Vector4& data)
     {
         return Read(data);
     }
 
     template <size_t Size>
-    inline bool readDynStr8(HybridString<Size> &data)
+    inline bool readDynStr8(HybridString<Size>& data)
     {
         return readDynamicStr<uint8_t>(data);
     }
 
     template <size_t Size>
-    inline bool readDynStr16(HybridString<Size> &data)
+    inline bool readDynStr16(HybridString<Size>& data)
     {
         return readDynamicStr<uint16_t>(data);
     }
 
     template <size_t Size>
-    inline bool readDynStr32(HybridString<Size> &data)
+    inline bool readDynStr32(HybridString<Size>& data)
     {
         return readDynamicStr<uint32_t>(data);
     }
@@ -325,46 +323,41 @@ public:
     template <typename T, typename U = std::enable_if_t<std::is_integral_v<T>, T>>
     inline bool readArray(Span<T> data)
     {
-        if (data.size() * sizeof(T) > unsigned(bitsToBytes(GetNumberOfUnreadBits())))
-        {
+        if (data.size() * sizeof(T) > unsigned(bitsToBytes(GetNumberOfUnreadBits()))) {
             return false;
         }
 
-        return Read(reinterpret_cast<char *>(data.data()), data.size() * sizeof(T));
+        return Read(reinterpret_cast<char*>(data.data()), data.size() * sizeof(T));
     }
 
-    inline bool readCompressedPercentPair(Vector2 &data)
+    inline bool readCompressedPercentPair(Vector2& data)
     {
         uint8_t
             health,
             armour;
-        if (!Read(health))
-        {
+        if (!Read(health)) {
             return false;
         }
-        if (!Read(armour))
-        {
+        if (!Read(armour)) {
             return false;
         }
         data = Vector2(health, armour);
         return true;
     }
 
-    inline bool readGTAQuat(GTAQuat &data)
+    inline bool readGTAQuat(GTAQuat& data)
     {
         return Read(data.q);
     }
 
     template <typename LenType, size_t Size>
-    bool readDynamicStr(HybridString<Size> &data)
+    bool readDynamicStr(HybridString<Size>& data)
     {
         LenType len;
-        if (!Read(len))
-        {
+        if (!Read(len)) {
             return false;
         }
-        if (len > unsigned(bitsToBytes(GetNumberOfUnreadBits())))
-        {
+        if (len > unsigned(bitsToBytes(GetNumberOfUnreadBits()))) {
             return false;
         }
         data.reserve(len);
@@ -380,7 +373,7 @@ public:
     /// \param[in] input The data
     /// \param[in] numberOfBitsToWrite The number of bits to write
     /// \param[in] rightAlignedBits if true data will be right aligned
-    void WriteBits(const unsigned char *input, int numberOfBitsToWrite, const bool rightAlignedBits = true);
+    void WriteBits(const unsigned char* input, int numberOfBitsToWrite, const bool rightAlignedBits = true);
 
     /// Write any integral type to a bitstream.  Undefine __BITSTREAM_NATIVE_END if you need endian swapping.
     /// If you are not using __BITSTREAM_NATIVE_END the opposite is true for types larger than 1 byte
@@ -398,7 +391,7 @@ public:
     /// \param[in] numberOfBitsToRead The number of bits to read
     /// \param[in] alignBitsToRight if true bits will be right aligned.
     /// \return true if there is enough bits to read
-    bool ReadBits(unsigned char *output, int numberOfBitsToRead, const bool alignBitsToRight = true);
+    bool ReadBits(unsigned char* output, int numberOfBitsToRead, const bool alignBitsToRight = true);
 
     /// Reads 1 bit and returns true if that bit is 1 and false if it is 0
     bool ReadBit(void);
@@ -409,7 +402,7 @@ public:
     /// If you are not using __BITSTREAM_NATIVE_END the opposite is true for types larger than 1 byte
     /// \param[in] var The value to read
     template <class templateType>
-    bool ReadCompressed(templateType &var);
+    bool ReadCompressed(templateType& var);
 
     /// This is good to call when you are done with the stream to make
     ///  sure you didn't leave any data left over void
@@ -449,16 +442,20 @@ public:
     /// the stream. Returns the length in bits of the stream. Partial
     /// bytes are left aligned
     /// \param[out] _data The allocated copy of GetData()
-    int CopyData(unsigned char **_data) const;
+    int CopyData(unsigned char** _data) const;
 
     /// Set the stream to some initial data.
     /// \internal
-    void SetData(unsigned char *input);
+    void SetData(unsigned char* input);
 
     /// Gets the data that NetworkBitStream is writing to / reading from
     /// Partial bytes are left aligned.
     /// \return A pointer to the internal state
-    inline unsigned char *GetData(void) const { return data; }
+    inline unsigned char* GetData(void) const { return data; }
+
+    /// Makes a copy of the data if NetworkBitStream is not owning it so we can safely write.
+    /// Can be used to write on top of incoming packets.
+    void OwnData(void);
 
 private:
     /// Write a 0
@@ -472,7 +469,7 @@ private:
     /// \param[in] var The value to write
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType>
-    bool Serialize(bool writeToBitstream, templateType &var);
+    bool Serialize(bool writeToBitstream, templateType& var);
 
     /// Bidirectional serialize/deserialize any integral type to/from a bitstream.  If the current value is different from the last value
     /// the current value will be written.  Otherwise, a single bit will be written
@@ -481,14 +478,14 @@ private:
     /// \param[in] lastValue The last value to compare against.  Only used if \a writeToBitstream is true.
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType>
-    bool SerializeDelta(bool writeToBitstream, templateType &currentValue, templateType lastValue);
+    bool SerializeDelta(bool writeToBitstream, templateType& currentValue, templateType lastValue);
 
     /// Bidirectional version of SerializeDelta when you don't know what the last value is, or there is no last value.
     /// \param[in] writeToBitstream true to write from your data to this bitstream.  False to read from this bitstream and write to your data
     /// \param[in] currentValue The current value to write
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType>
-    bool SerializeDelta(bool writeToBitstream, templateType &currentValue);
+    bool SerializeDelta(bool writeToBitstream, templateType& currentValue);
 
     /// Bidirectional serialize/deserialize any integral type to/from a bitstream.  Undefine __BITSTREAM_NATIVE_END if you need endian swapping.
     /// If you are not using __BITSTREAM_NATIVE_END the opposite is true for types larger than 1 byte
@@ -498,7 +495,7 @@ private:
     /// \param[in] var The value to write
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType>
-    bool SerializeCompressed(bool writeToBitstream, templateType &var);
+    bool SerializeCompressed(bool writeToBitstream, templateType& var);
 
     /// Bidirectional serialize/deserialize any integral type to/from a bitstream.  If the current value is different from the last value
     /// the current value will be written.  Otherwise, a single bit will be written
@@ -510,18 +507,18 @@ private:
     /// \param[in] lastValue The last value to compare against.  Only used if \a writeToBitstream is true.
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType>
-    bool SerializeCompressedDelta(bool writeToBitstream, templateType &currentValue, templateType lastValue);
+    bool SerializeCompressedDelta(bool writeToBitstream, templateType& currentValue, templateType lastValue);
 
     /// Save as SerializeCompressedDelta(templateType &currentValue, templateType lastValue) when we have an unknown second parameter
     template <class templateType>
-    bool SerializeCompressedDelta(bool writeToBitstream, templateType &currentValue);
+    bool SerializeCompressedDelta(bool writeToBitstream, templateType& currentValue);
 
     /// Bidirectional serialize/deserialize an array or casted stream or raw data.  This does NOT do endian swapping.
     /// \param[in] writeToBitstream true to write from your data to this bitstream.  False to read from this bitstream and write to your data
     /// \param[in] input a byte buffer
     /// \param[in] numberOfBytes the size of \a input in bytes
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
-    bool Serialize(bool writeToBitstream, char *input, const int numberOfBytes);
+    bool Serialize(bool writeToBitstream, char* input, const int numberOfBytes);
 
     /// Bidirectional serialize/deserialize a normalized 3D vector, using (at most) 4 bytes + 3 bits instead of 12-24 bytes.  Will further compress y or z axis aligned vectors.
     /// Accurate to 1/32767.5.
@@ -531,7 +528,7 @@ private:
     /// \param[in] z z
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType> // templateType for this function must be a float or double
-    bool SerializeNormVector(bool writeToBitstream, templateType &x, templateType &y, templateType &z);
+    bool SerializeNormVector(bool writeToBitstream, templateType& x, templateType& y, templateType& z);
 
     /// Bidirectional serialize/deserialize a vector, using 10 bytes instead of 12.
     /// Loses accuracy to about 3/10ths and only saves 2 bytes, so only use if accuracy is not important.
@@ -541,7 +538,7 @@ private:
     /// \param[in] z z
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType> // templateType for this function must be a float or double
-    bool SerializeVector(bool writeToBitstream, templateType &x, templateType &y, templateType &z);
+    bool SerializeVector(bool writeToBitstream, templateType& x, templateType& y, templateType& z);
 
     /// Bidirectional serialize/deserialize a normalized quaternion in 6 bytes + 4 bits instead of 16 bytes.  Slightly lossy.
     /// \param[in] writeToBitstream true to write from your data to this bitstream.  False to read from this bitstream and write to your data
@@ -551,7 +548,7 @@ private:
     /// \param[in] z z
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
     template <class templateType> // templateType for this function must be a float or double
-    bool SerializeNormQuat(bool writeToBitstream, templateType &w, templateType &x, templateType &y, templateType &z);
+    bool SerializeNormQuat(bool writeToBitstream, templateType& w, templateType& x, templateType& y, templateType& z);
 
     /// Bidirectional serialize/deserialize an orthogonal matrix by creating a quaternion, and writing 3 components of the quaternion in 2 bytes each
     /// for 6 bytes instead of 36
@@ -559,9 +556,9 @@ private:
     template <class templateType> // templateType for this function must be a float or double
     bool SerializeOrthMatrix(
         bool writeToBitstream,
-        templateType &m00, templateType &m01, templateType &m02,
-        templateType &m10, templateType &m11, templateType &m12,
-        templateType &m20, templateType &m21, templateType &m22);
+        templateType& m00, templateType& m01, templateType& m02,
+        templateType& m10, templateType& m11, templateType& m12,
+        templateType& m20, templateType& m21, templateType& m22);
 
     /// Bidirectional serialize/deserialize numberToSerialize bits to/from the input. Right aligned
     /// data means in the case of a partial byte, the bits are aligned
@@ -574,7 +571,7 @@ private:
     /// \param[in] numberOfBitsToSerialize The number of bits to write
     /// \param[in] rightAlignedBits if true data will be right aligned
     /// \return true if \a writeToBitstream is true.  true if \a writeToBitstream is false and the read was successful.  false if \a writeToBitstream is false and the read was not successful.
-    bool SerializeBits(bool writeToBitstream, unsigned char *input, int numberOfBitsToSerialize, const bool rightAlignedBits = true);
+    bool SerializeBits(bool writeToBitstream, unsigned char* input, int numberOfBitsToSerialize, const bool rightAlignedBits = true);
 
     /// Write any integral type to a bitstream.  Undefine __BITSTREAM_NATIVE_END if you need endian swapping.
     /// \param[in] var The value to write
@@ -610,14 +607,14 @@ private:
     /// Read any integral type from a bitstream.  Define __BITSTREAM_NATIVE_END if you need endian swapping.
     /// \param[in] var The value to read
     template <class templateType>
-    bool Read(templateType &var);
+    bool Read(templateType& var);
 
     /// Read any integral type from a bitstream.  If the written value differed from the value compared against in the write function,
     /// var will be updated.  Otherwise it will retain the current value.
     /// ReadDelta is only valid from a previous call to WriteDelta
     /// \param[in] var The value to read
     template <class templateType>
-    bool ReadDelta(templateType &var);
+    bool ReadDelta(templateType& var);
 
     /// Read any integral type from a bitstream.  If the written value differed from the value compared against in the write function,
     /// var will be updated.  Otherwise it will retain the current value.
@@ -628,18 +625,18 @@ private:
     /// ReadCompressedDelta is only valid from a previous call to WriteDelta
     /// \param[in] var The value to read
     template <class templateType>
-    bool ReadCompressedDelta(templateType &var);
+    bool ReadCompressedDelta(templateType& var);
 
     /// Write an array or casted stream or raw data.  This does NOT do endian swapping.
     /// \param[in] input a byte buffer
     /// \param[in] numberOfBytes the size of \a input in bytes
-    void Write(const char *input, const int numberOfBytes);
+    void Write(const char* input, const int numberOfBytes);
 
     /// Write one bitstream to another
     /// \param[in] numberOfBits bits to write
     /// \param bitStream the bitstream to copy from
-    void Write(NetworkBitStream *bitStream, int numberOfBits);
-    void Write(NetworkBitStream *bitStream);
+    void Write(NetworkBitStream* bitStream, int numberOfBits);
+    void Write(NetworkBitStream* bitStream);
 
     /// Read a normalized 3D vector, using (at most) 4 bytes + 3 bits instead of 12-24 bytes.  Will further compress y or z axis aligned vectors.
     /// Accurate to 1/32767.5.
@@ -679,7 +676,7 @@ private:
     /// \param[in] output The result byte array. It should be larger than @em numberOfBytes.
     /// \param[in] numberOfBytes The number of byte to read
     /// \return true on success false if there is some missing bytes.
-    bool Read(char *output, const int numberOfBytes);
+    bool Read(char* output, const int numberOfBytes);
 
     /// Read a normalized 3D vector, using (at most) 4 bytes + 3 bits instead of 12-24 bytes.  Will further compress y or z axis aligned vectors.
     /// Accurate to 1/32767.5.
@@ -687,7 +684,7 @@ private:
     /// \param[in] y y
     /// \param[in] z z
     template <class templateType> // templateType for this function must be a float or double
-    bool ReadNormVector(templateType &x, templateType &y, templateType &z);
+    bool ReadNormVector(templateType& x, templateType& y, templateType& z);
 
     /// Read 3 floats or doubles, using 10 bytes, where those float or doubles comprise a vector
     /// Loses accuracy to about 3/10ths and only saves 2 bytes, so only use if accuracy is not important.
@@ -695,7 +692,7 @@ private:
     /// \param[in] y y
     /// \param[in] z z
     template <class templateType> // templateType for this function must be a float or double
-    bool ReadVector(templateType &x, templateType &y, templateType &z);
+    bool ReadVector(templateType& x, templateType& y, templateType& z);
 
     /// Read a normalized quaternion in 6 bytes + 4 bits instead of 16 bytes.
     /// \param[in] w w
@@ -703,16 +700,16 @@ private:
     /// \param[in] y y
     /// \param[in] z z
     template <class templateType> // templateType for this function must be a float or double
-    bool ReadNormQuat(templateType &w, templateType &x, templateType &y, templateType &z);
+    bool ReadNormQuat(templateType& w, templateType& x, templateType& y, templateType& z);
 
     /// Read an orthogonal matrix from a quaternion, reading 3 components of the quaternion in 2 bytes each and extrapolatig the 4th.
     /// for 6 bytes instead of 36
     /// Lossy, although the result is renormalized
     template <class templateType> // templateType for this function must be a float or double
     bool ReadOrthMatrix(
-        templateType &m00, templateType &m01, templateType &m02,
-        templateType &m10, templateType &m11, templateType &m12,
-        templateType &m20, templateType &m21, templateType &m22);
+        templateType& m00, templateType& m01, templateType& m02,
+        templateType& m10, templateType& m11, templateType& m12,
+        templateType& m20, templateType& m21, templateType& m22);
 
     /// Align the bitstream to the byte boundary and then write the
     /// specified number of bits.  This is faster than DoWriteBits but
@@ -720,7 +717,7 @@ private:
     /// ReadAlignedBits at the corresponding read position.
     /// \param[in] input The data
     /// \param[in] numberOfBytesToWrite The size of data.
-    void WriteAlignedBytes(const unsigned char *input, const int numberOfBytesToWrite);
+    void WriteAlignedBytes(const unsigned char* input, const int numberOfBytesToWrite);
 
     /// Read bits, starting at the next aligned bits. Note that the
     /// modulus 8 starting offset of the sequence must be the same as
@@ -729,7 +726,7 @@ private:
     /// \param[in] output The byte array larger than @em numberOfBytesToRead
     /// \param[in] numberOfBytesToRead The number of byte to read from the internal state
     /// \return true if there is enough byte.
-    bool ReadAlignedBytes(unsigned char *output, const int numberOfBytesToRead);
+    bool ReadAlignedBytes(unsigned char* output, const int numberOfBytesToRead);
 
     /// Align the next write and/or read to a byte boundary.  This can
     /// be used to 'waste' bits to byte align for efficiency reasons It
@@ -745,10 +742,6 @@ private:
     /// calculate the same offset when aligning.
     void AlignReadToByteBoundary(void);
 
-    /// If we used the constructor version with copy data off, this
-    /// *makes sure it is set to on and the data pointed to is copied.
-    void AssertCopyData(void);
-
     /// Use this if you pass a pointer copy to the constructor
     /// *(_copyData==false) and want to overallocate to prevent
     /// *reallocation
@@ -759,10 +752,10 @@ private:
 
 private:
     /// Assume the input source points to a native type, compress and write it.
-    void WriteCompressed(const unsigned char *input, const int size, const bool unsignedData);
+    void WriteCompressed(const unsigned char* input, const int size, const bool unsignedData);
 
     /// Assume the input source points to a compressed native type. Decompress and read it.
-    bool ReadCompressed(unsigned char *output, const int size, const bool unsignedData);
+    bool ReadCompressed(unsigned char* output, const int size, const bool unsignedData);
 
     int numberOfBitsUsed;
 
@@ -770,7 +763,7 @@ private:
 
     int readOffset;
 
-    unsigned char *data;
+    unsigned char* data;
 
     /// true if the internal buffer is copy of the data passed to the constructor
     bool copyData;
@@ -791,7 +784,7 @@ inline void NetworkBitStream::Write(bool var)
 }
 
 template <class templateType>
-inline bool NetworkBitStream::Serialize(bool writeToBitstream, templateType &var)
+inline bool NetworkBitStream::Serialize(bool writeToBitstream, templateType& var)
 {
     if (writeToBitstream)
         Write(var);
@@ -801,7 +794,7 @@ inline bool NetworkBitStream::Serialize(bool writeToBitstream, templateType &var
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeDelta(bool writeToBitstream, templateType &currentValue, templateType lastValue)
+inline bool NetworkBitStream::SerializeDelta(bool writeToBitstream, templateType& currentValue, templateType lastValue)
 {
     if (writeToBitstream)
         WriteDelta(currentValue, lastValue);
@@ -811,7 +804,7 @@ inline bool NetworkBitStream::SerializeDelta(bool writeToBitstream, templateType
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeDelta(bool writeToBitstream, templateType &currentValue)
+inline bool NetworkBitStream::SerializeDelta(bool writeToBitstream, templateType& currentValue)
 {
     if (writeToBitstream)
         WriteDelta(currentValue);
@@ -821,7 +814,7 @@ inline bool NetworkBitStream::SerializeDelta(bool writeToBitstream, templateType
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeCompressed(bool writeToBitstream, templateType &var)
+inline bool NetworkBitStream::SerializeCompressed(bool writeToBitstream, templateType& var)
 {
     if (writeToBitstream)
         WriteCompressed(var);
@@ -831,7 +824,7 @@ inline bool NetworkBitStream::SerializeCompressed(bool writeToBitstream, templat
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeCompressedDelta(bool writeToBitstream, templateType &currentValue, templateType lastValue)
+inline bool NetworkBitStream::SerializeCompressedDelta(bool writeToBitstream, templateType& currentValue, templateType lastValue)
 {
     if (writeToBitstream)
         WriteCompressedDelta(currentValue, lastValue);
@@ -841,7 +834,7 @@ inline bool NetworkBitStream::SerializeCompressedDelta(bool writeToBitstream, te
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeCompressedDelta(bool writeToBitstream, templateType &currentValue)
+inline bool NetworkBitStream::SerializeCompressedDelta(bool writeToBitstream, templateType& currentValue)
 {
     if (writeToBitstream)
         WriteCompressedDelta(currentValue);
@@ -850,7 +843,7 @@ inline bool NetworkBitStream::SerializeCompressedDelta(bool writeToBitstream, te
     return true;
 }
 
-inline bool NetworkBitStream::Serialize(bool writeToBitstream, char *input, const int numberOfBytes)
+inline bool NetworkBitStream::Serialize(bool writeToBitstream, char* input, const int numberOfBytes)
 {
     if (writeToBitstream)
         Write(input, numberOfBytes);
@@ -860,7 +853,7 @@ inline bool NetworkBitStream::Serialize(bool writeToBitstream, char *input, cons
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeNormVector(bool writeToBitstream, templateType &x, templateType &y, templateType &z)
+inline bool NetworkBitStream::SerializeNormVector(bool writeToBitstream, templateType& x, templateType& y, templateType& z)
 {
     if (writeToBitstream)
         WriteNormVector(x, y, z);
@@ -870,7 +863,7 @@ inline bool NetworkBitStream::SerializeNormVector(bool writeToBitstream, templat
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeVector(bool writeToBitstream, templateType &x, templateType &y, templateType &z)
+inline bool NetworkBitStream::SerializeVector(bool writeToBitstream, templateType& x, templateType& y, templateType& z)
 {
     if (writeToBitstream)
         WriteVector(x, y, z);
@@ -880,7 +873,7 @@ inline bool NetworkBitStream::SerializeVector(bool writeToBitstream, templateTyp
 }
 
 template <class templateType>
-inline bool NetworkBitStream::SerializeNormQuat(bool writeToBitstream, templateType &w, templateType &x, templateType &y, templateType &z)
+inline bool NetworkBitStream::SerializeNormQuat(bool writeToBitstream, templateType& w, templateType& x, templateType& y, templateType& z)
 {
     if (writeToBitstream)
         WriteNormQuat(w, x, y, z);
@@ -892,9 +885,9 @@ inline bool NetworkBitStream::SerializeNormQuat(bool writeToBitstream, templateT
 template <class templateType>
 inline bool NetworkBitStream::SerializeOrthMatrix(
     bool writeToBitstream,
-    templateType &m00, templateType &m01, templateType &m02,
-    templateType &m10, templateType &m11, templateType &m12,
-    templateType &m20, templateType &m21, templateType &m22)
+    templateType& m00, templateType& m01, templateType& m02,
+    templateType& m10, templateType& m11, templateType& m12,
+    templateType& m20, templateType& m21, templateType& m22)
 {
     if (writeToBitstream)
         WriteOrthMatrix(m00, m01, m02, m10, m11, m12, m20, m21, m22);
@@ -903,7 +896,7 @@ inline bool NetworkBitStream::SerializeOrthMatrix(
     return true;
 }
 
-inline bool NetworkBitStream::SerializeBits(bool writeToBitstream, unsigned char *input, int numberOfBitsToSerialize, const bool rightAlignedBits)
+inline bool NetworkBitStream::SerializeBits(bool writeToBitstream, unsigned char* input, int numberOfBitsToSerialize, const bool rightAlignedBits)
 {
     if (writeToBitstream)
         WriteBits(input, numberOfBitsToSerialize, rightAlignedBits);
@@ -915,7 +908,7 @@ inline bool NetworkBitStream::SerializeBits(bool writeToBitstream, unsigned char
 template <class templateType>
 inline void NetworkBitStream::Write(templateType var)
 {
-    WriteBits((unsigned char *)&var, sizeof(templateType) * 8, true);
+    WriteBits((unsigned char*)&var, sizeof(templateType) * 8, true);
 }
 
 /// Write any integral type to a bitstream.  If the current value is different from the last value
@@ -925,12 +918,9 @@ inline void NetworkBitStream::Write(templateType var)
 template <class templateType>
 inline void NetworkBitStream::WriteDelta(templateType currentValue, templateType lastValue)
 {
-    if (currentValue == lastValue)
-    {
+    if (currentValue == lastValue) {
         Write(false);
-    }
-    else
-    {
+    } else {
         Write(true);
         Write(currentValue);
     }
@@ -962,7 +952,7 @@ inline void NetworkBitStream::WriteDelta(templateType currentValue)
 template <class templateType>
 inline void NetworkBitStream::WriteCompressed(templateType var)
 {
-    WriteCompressed((unsigned char *)&var, sizeof(templateType) * 8, true);
+    WriteCompressed((unsigned char*)&var, sizeof(templateType) * 8, true);
 }
 
 template <>
@@ -1008,12 +998,9 @@ inline void NetworkBitStream::WriteCompressed(double var)
 template <class templateType>
 inline void NetworkBitStream::WriteCompressedDelta(templateType currentValue, templateType lastValue)
 {
-    if (currentValue == lastValue)
-    {
+    if (currentValue == lastValue) {
         Write(false);
-    }
-    else
-    {
+    } else {
         Write(true);
         WriteCompressed(currentValue);
     }
@@ -1046,15 +1033,15 @@ inline void NetworkBitStream::WriteCompressedDelta(bool currentValue)
 /// Read any integral type from a bitstream.  Define __BITSTREAM_NATIVE_END if you need endian swapping.
 /// \param[in] var The value to read
 template <class templateType>
-inline bool NetworkBitStream::Read(templateType &var)
+inline bool NetworkBitStream::Read(templateType& var)
 {
-    return ReadBits((unsigned char *)&var, sizeof(templateType) * 8, true);
+    return ReadBits((unsigned char*)&var, sizeof(templateType) * 8, true);
 }
 
 /// Read a bool from a bitstream
 /// \param[in] var The value to read
 template <>
-inline bool NetworkBitStream::Read(bool &var)
+inline bool NetworkBitStream::Read(bool& var)
 {
     if (GetNumberOfUnreadBits() == 0)
         return false;
@@ -1074,7 +1061,7 @@ inline bool NetworkBitStream::Read(bool &var)
 /// ReadDelta is only valid from a previous call to WriteDelta
 /// \param[in] var The value to read
 template <class templateType>
-inline bool NetworkBitStream::ReadDelta(templateType &var)
+inline bool NetworkBitStream::ReadDelta(templateType& var)
 {
     bool dataWritten;
     bool success;
@@ -1087,7 +1074,7 @@ inline bool NetworkBitStream::ReadDelta(templateType &var)
 /// Read a bool from a bitstream
 /// \param[in] var The value to read
 template <>
-inline bool NetworkBitStream::ReadDelta(bool &var)
+inline bool NetworkBitStream::ReadDelta(bool& var)
 {
     return Read(var);
 }
@@ -1098,24 +1085,23 @@ inline bool NetworkBitStream::ReadDelta(bool &var)
 /// If you are not using __BITSTREAM_NATIVE_END the opposite is true for types larger than 1 byte
 /// \param[in] var The value to read
 template <class templateType>
-inline bool NetworkBitStream::ReadCompressed(templateType &var)
+inline bool NetworkBitStream::ReadCompressed(templateType& var)
 {
-    return ReadCompressed((unsigned char *)&var, sizeof(templateType) * 8, true);
+    return ReadCompressed((unsigned char*)&var, sizeof(templateType) * 8, true);
 }
 
 template <>
-inline bool NetworkBitStream::ReadCompressed(bool &var)
+inline bool NetworkBitStream::ReadCompressed(bool& var)
 {
     return Read(var);
 }
 
 /// For values between -1 and 1
 template <>
-inline bool NetworkBitStream::ReadCompressed(float &var)
+inline bool NetworkBitStream::ReadCompressed(float& var)
 {
     unsigned short compressedFloat;
-    if (Read(compressedFloat))
-    {
+    if (Read(compressedFloat)) {
         var = ((float)compressedFloat / 32767.5f - 1.0f);
         return true;
     }
@@ -1124,11 +1110,10 @@ inline bool NetworkBitStream::ReadCompressed(float &var)
 
 /// For values between -1 and 1
 template <>
-inline bool NetworkBitStream::ReadCompressed(double &var)
+inline bool NetworkBitStream::ReadCompressed(double& var)
 {
     unsigned long compressedFloat;
-    if (Read(compressedFloat))
-    {
+    if (Read(compressedFloat)) {
         var = ((double)compressedFloat / 2147483648.0 - 1.0);
         return true;
     }
@@ -1144,7 +1129,7 @@ inline bool NetworkBitStream::ReadCompressed(double &var)
 /// ReadCompressedDelta is only valid from a previous call to WriteDelta
 /// \param[in] var The value to read
 template <class templateType>
-inline bool NetworkBitStream::ReadCompressedDelta(templateType &var)
+inline bool NetworkBitStream::ReadCompressedDelta(templateType& var)
 {
     bool dataWritten;
     bool success;
@@ -1157,7 +1142,7 @@ inline bool NetworkBitStream::ReadCompressedDelta(templateType &var)
 /// Read a bool from a bitstream
 /// \param[in] var The value to read
 template <>
-inline bool NetworkBitStream::ReadCompressedDelta(bool &var)
+inline bool NetworkBitStream::ReadCompressedDelta(bool& var)
 {
     return Read(var);
 }
@@ -1184,16 +1169,14 @@ void NetworkBitStream::WriteNormVector(templateType x, templateType y, templateT
     Write((bool)(x < 0.0));
     if (y == 0.0)
         Write(true);
-    else
-    {
+    else {
         Write(false);
         WriteCompressed((float)y);
         // Write((unsigned short)((y+1.0f)*32767.5f));
     }
     if (z == 0.0)
         Write(true);
-    else
-    {
+    else {
         Write(false);
         WriteCompressed((float)z);
         // Write((unsigned short)((z+1.0f)*32767.5f));
@@ -1205,8 +1188,7 @@ void NetworkBitStream::WriteVector(templateType x, templateType y, templateType 
 {
     templateType magnitude = sqrt(x * x + y * y + z * z);
     Write((float)magnitude);
-    if (magnitude > 0.0)
-    {
+    if (magnitude > 0.0) {
         WriteCompressed((float)(x / magnitude));
         WriteCompressed((float)(y / magnitude));
         WriteCompressed((float)(z / magnitude));
@@ -1275,7 +1257,7 @@ void NetworkBitStream::WriteOrthMatrix(
 }
 
 template <class templateType> // templateType for this function must be a float or double
-bool NetworkBitStream::ReadNormVector(templateType &x, templateType &y, templateType &z)
+bool NetworkBitStream::ReadNormVector(templateType& x, templateType& y, templateType& z)
 {
     //	unsigned short sy, sz;
     bool yZero, zZero;
@@ -1287,8 +1269,7 @@ bool NetworkBitStream::ReadNormVector(templateType &x, templateType &y, template
     Read(yZero);
     if (yZero)
         y = 0.0;
-    else
-    {
+    else {
         ReadCompressed(cy);
         y = cy;
         // Read(sy);
@@ -1300,8 +1281,7 @@ bool NetworkBitStream::ReadNormVector(templateType &x, templateType &y, template
 
     if (zZero)
         z = 0.0;
-    else
-    {
+    else {
         //	if (!Read(sz))
         //		return false;
 
@@ -1318,14 +1298,13 @@ bool NetworkBitStream::ReadNormVector(templateType &x, templateType &y, template
 }
 
 template <class templateType> // templateType for this function must be a float or double
-bool NetworkBitStream::ReadVector(templateType &x, templateType &y, templateType &z)
+bool NetworkBitStream::ReadVector(templateType& x, templateType& y, templateType& z)
 {
     float magnitude;
     // unsigned short sx,sy,sz;
     if (!Read(magnitude))
         return false;
-    if (magnitude != 0.0)
-    {
+    if (magnitude != 0.0) {
         //	Read(sx);
         //	Read(sy);
         //	if (!Read(sz))
@@ -1344,9 +1323,7 @@ bool NetworkBitStream::ReadVector(templateType &x, templateType &y, templateType
         x *= magnitude;
         y *= magnitude;
         z *= magnitude;
-    }
-    else
-    {
+    } else {
         x = 0.0;
         y = 0.0;
         z = 0.0;
@@ -1355,7 +1332,7 @@ bool NetworkBitStream::ReadVector(templateType &x, templateType &y, templateType
 }
 
 template <class templateType> // templateType for this function must be a float or double
-bool NetworkBitStream::ReadNormQuat(templateType &w, templateType &x, templateType &y, templateType &z)
+bool NetworkBitStream::ReadNormQuat(templateType& w, templateType& x, templateType& y, templateType& z)
 {
     bool cwNeg, cxNeg, cyNeg, czNeg;
     unsigned short cx, cy, cz;
@@ -1389,9 +1366,9 @@ bool NetworkBitStream::ReadNormQuat(templateType &w, templateType &x, templateTy
 
 template <class templateType> // templateType for this function must be a float or double
 bool NetworkBitStream::ReadOrthMatrix(
-    templateType &m00, templateType &m01, templateType &m02,
-    templateType &m10, templateType &m11, templateType &m12,
-    templateType &m20, templateType &m21, templateType &m22)
+    templateType& m00, templateType& m01, templateType& m02,
+    templateType& m10, templateType& m11, templateType& m12,
+    templateType& m20, templateType& m21, templateType& m22)
 {
     float qw, qx, qy, qz;
     if (!ReadNormQuat(qw, qx, qy, qz))
@@ -1428,8 +1405,7 @@ inline void NetworkBitStream::writeCompressedVEC3(Vector3 data)
 {
     float magnitude = glm::length(data);
     Write(magnitude);
-    if (magnitude > CompressedVecMagnitudeEpsilon)
-    {
+    if (magnitude > CompressedVecMagnitudeEpsilon) {
         data /= magnitude;
         WriteCompressed(data.x);
         WriteCompressed(data.y);
@@ -1442,7 +1418,7 @@ inline void NetworkBitStream::writeBIT(bool data)
     Write<bool>(data);
 }
 
-inline bool NetworkBitStream::readBIT(bool &data)
+inline bool NetworkBitStream::readBIT(bool& data)
 {
     return Read<bool>(data);
 }

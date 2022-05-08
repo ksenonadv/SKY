@@ -1,37 +1,33 @@
 #include "network.hpp"
 
-bool PlayerSync::received(IPlayer &peer, NetworkBitStream &bs)
+bool PlayerSync::received(IPlayer& peer, NetworkBitStream& bs)
 {
-    int playerId = peer.getID();
+    GET_SKY_DATA(peer, true)
 
-    if (Player::GetSyncFrozenState(playerId, SyncTypes::E_PLAYER_SYNC) || Player::GetSyncFrozenState(playerId, SyncTypes::E_ALL_SYNC))
-    {
-        bs.reset();
-        Player::lastSyncData[playerId].write(bs);
-    }
-    else
-    {
-        Player::lastSyncData[playerId].read(bs);
+    Packet::PlayerFootSync packet;
+    NetworkBitStream& last_bs = player_data->GetSyncBitStream(E_PLAYER_SYNC);
 
-        if (Player::lastSyncData[playerId].Weapon > PlayerWeapon::PlayerWeapon_Parachute || (Player::lastSyncData[playerId].Weapon > PlayerWeapon::PlayerWeapon_Moltov && Player::lastSyncData[playerId].Weapon < PlayerWeapon::PlayerWeapon_Colt45))
-        {
-            Player::lastSyncData[playerId].Weapon = PlayerWeapon::PlayerWeapon_Fist;
+    if (player_data->IsSyncFrozen(E_PLAYER_SYNC) || player_data->IsSyncFrozen(E_ALL_SYNC)) {
+        packet.read(last_bs);
+    } else {
+        packet.read(bs);
+
+        if (packet.Weapon > PlayerWeapon::PlayerWeapon_Parachute || (packet.Weapon > PlayerWeapon::PlayerWeapon_Moltov && packet.Weapon < PlayerWeapon::PlayerWeapon_Colt45)) {
+            packet.Weapon = PlayerWeapon::PlayerWeapon_Fist;
         }
 
         // Because of detonator crasher - Sends AIM_KEY in this packet and cam mode IDs 7, 8, 34, 45, 46, 51 and 65 in ID_AIM_SYNC
-        if (Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_Bomb)
-        {
-            Player::lastSyncData[playerId].Keys &= ~128;
+        if (packet.Weapon == PlayerWeapon::PlayerWeapon_Bomb) {
+            packet.Keys &= ~128;
         }
 
-        if (disableSyncBugs)
-        {
+        static int* disableSyncBugs = SkyComponent::getCore()->getConfig().getInt("SKY.disable_sync_bugs");
+
+        if (*disableSyncBugs) {
             // Prevent "ghost shooting" bugs
-            if ((Player::lastSyncData[playerId].Weapon >= PlayerWeapon::PlayerWeapon_Colt45 && Player::lastSyncData[playerId].Weapon <= PlayerWeapon::PlayerWeapon_Sniper) || Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_Minigun)
-            {
-                switch (Player::lastSyncData[playerId].AnimationID)
-                {
-                    // PED_RUN_*
+            if ((packet.Weapon >= PlayerWeapon::PlayerWeapon_Colt45 && packet.Weapon <= PlayerWeapon::PlayerWeapon_Sniper) || packet.Weapon == PlayerWeapon::PlayerWeapon_Minigun) {
+                switch (packet.AnimationID) {
+                // PED_RUN_*
                 case 1222:
                 case 1223:
                 case 1224:
@@ -169,234 +165,219 @@ bool PlayerSync::received(IPlayer &peer, NetworkBitStream &bs)
                 case 1150:
                 case 1151:
                     // Only remove action key if holding aim
-                    if (Player::lastSyncData[playerId].Keys & 128)
-                    {
-                        Player::lastSyncData[playerId].Keys &= ~1;
+                    if (packet.Keys & 128) {
+                        packet.Keys &= ~1;
                     }
 
                     // Remove fire key
-                    Player::lastSyncData[playerId].Keys &= ~4;
+                    packet.Keys &= ~4;
 
                     // Remove aim key
-                    Player::lastSyncData[playerId].Keys &= ~128;
-
+                    packet.Keys &= ~128;
                     break;
                 }
-            }
-            else if (Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_SprayCan || Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_FireExtinguisher || Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_FlameThrower)
-            {
-                if (Player::lastSyncData[playerId].AnimationID < 1160 || Player::lastSyncData[playerId].AnimationID > 1167)
-                {
+            } else if (packet.Weapon == PlayerWeapon::PlayerWeapon_SprayCan || packet.Weapon == PlayerWeapon::PlayerWeapon_FireExtinguisher || packet.Weapon == PlayerWeapon::PlayerWeapon_FlameThrower) {
+                if (packet.AnimationID < 1160 || packet.AnimationID > 1167) {
                     // Only remove action key if holding aim
-                    if (Player::lastSyncData[playerId].Keys & 128)
-                    {
-                        Player::lastSyncData[playerId].Keys &= ~1;
+                    if (packet.Keys & 128) {
+                        packet.Keys &= ~1;
                     }
 
                     // Remove fire key
-                    Player::lastSyncData[playerId].Keys &= ~4;
+                    packet.Keys &= ~4;
 
                     // Remove aim key
-                    Player::lastSyncData[playerId].Keys &= ~128;
+                    packet.Keys &= ~128;
                 }
-            }
-            else if (Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_Grenade)
-            {
-                if (Player::lastSyncData[playerId].AnimationID < 644 || Player::lastSyncData[playerId].AnimationID > 646)
-                {
-                    Player::lastSyncData[playerId].Keys &= ~1;
+            } else if (packet.Weapon == PlayerWeapon::PlayerWeapon_Grenade) {
+                if (packet.AnimationID < 644 || packet.AnimationID > 646) {
+                    packet.Keys &= ~1;
                 }
             }
         }
 
-        if (Player::blockKeySync[playerId])
-        {
-            Player::lastSyncData[playerId].Keys = 0;
-        }
-
-        if (Player::fakeHealth[playerId] != 255)
-        {
-            Player::lastSyncData[playerId].HealthArmour[0] = Player::fakeHealth[playerId];
-        }
-
-        if (Player::fakeArmour[playerId] != 255)
-        {
-            Player::lastSyncData[playerId].HealthArmour[1] = Player::fakeArmour[playerId];
-        }
-
-        if (Player::fakeQuat[playerId] != nullptr)
-        {
-            GTAQuat q(
-                Player::fakeQuat[playerId]->w,
-                Player::fakeQuat[playerId]->x,
-                Player::fakeQuat[playerId]->y,
-                Player::fakeQuat[playerId]->z);
-
-            Player::lastSyncData[playerId].Rotation = q;
-        }
-
-        if (Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_Night_Vis_Goggles || Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_Thermal_Goggles)
-        {
-            Player::lastSyncData[playerId].Keys &= ~4;
-        }
-        else if (Player::lastSyncData[playerId].Weapon == PlayerWeapon::PlayerWeapon_Knife && knifeSync == false)
-        {
-            Player::lastSyncData[playerId].Keys &= ~128;
-        }
-
-        Player::lastWeapon[playerId] = Player::lastSyncData[playerId].Weapon;
-
-        bs.reset();
-        Player::lastSyncData[playerId].write(bs);
+        // Storing latest packet data.
+        packet.rewrite(last_bs);
     }
 
-    Player::lastUpdateTick[playerId] = SkyComponent::getCore()->getTickCount();
-    Player::lastSyncPacket[playerId] = SyncTypes::E_PLAYER_SYNC;
+    if (player_data->GetBlockKeySync()) {
+        packet.Keys = 0;
+    }
 
+    float fake_health = player_data->GetFakeHealth();
+    if (player_data->GetFakeHealth() != 255) {
+        packet.HealthArmour[0] = fake_health;
+    }
+
+    float fake_armour = player_data->GetFakeArmour();
+    if (fake_armour != 255) {
+        packet.HealthArmour[1] = fake_armour;
+    }
+
+    /*float fake_angle = player_data->GetFakeFacingAngle();
+        if (fake_angle != static_cast<float>(0x7FFFFFFF)) {
+            Vector3 rot_euler = packet.Rotation.ToEuler();
+            packet.Rotation = GTAQuat(rot_euler.x, rot_euler.y, fake_angle);
+            edited = true;
+        }*/
+
+    static int* knifeSync = SkyComponent::getCore()->getConfig().getInt("SKY.enable_knife_sync");
+
+    if (packet.Weapon == PlayerWeapon_Night_Vis_Goggles || packet.Weapon == PlayerWeapon_Thermal_Goggles) {
+        packet.Keys &= ~4;
+    } else if (packet.Weapon == PlayerWeapon_Knife && !*knifeSync) {
+        packet.Keys &= ~128;
+    }
+
+    // Rewriting the incoming packet.
+    packet.rewrite(bs);
+
+    player_data->SetLastWeapon(static_cast<PlayerWeapon>(packet.Weapon));
+    player_data->SetLastSyncType(E_PLAYER_SYNC);
     return true;
 }
 
-bool AimSync::received(IPlayer &peer, NetworkBitStream &bs)
+bool AimSync::received(IPlayer& peer, NetworkBitStream& bs)
 {
-    int playerId = peer.getID();
+    GET_SKY_DATA(peer, true)
+    Packet::PlayerAimSync packet;
+    NetworkBitStream& last_bs = player_data->GetSyncBitStream(E_AIM_SYNC);
 
-    if (Player::GetSyncFrozenState(playerId, SyncTypes::E_PLAYER_SYNC) || Player::GetSyncFrozenState(playerId, SyncTypes::E_ALL_SYNC))
-    {
-        bs.reset();
-        Player::lastPlayerAimSyncData[playerId].write(bs);
-    }
-    else
-    {
-        Player::lastPlayerAimSyncData[playerId].read(bs);
+    if (player_data->IsSyncFrozen(E_AIM_SYNC) || player_data->IsSyncFrozen(E_ALL_SYNC)) {
+        packet.read(last_bs);
+    } else {
+        packet.read(bs);
 
-        // Fix first-person up/down aim sync
-        if (Player::lastWeapon[playerId] == PlayerWeapon_Sniper || Player::lastWeapon[playerId] == PlayerWeapon_RocketLauncher || Player::lastWeapon[playerId] == PlayerWeapon_HeatSeeker || Player::lastWeapon[playerId] == PlayerWeapon_Camera)
-        {
-            Player::lastPlayerAimSyncData[playerId].AimZ = Player::lastPlayerAimSyncData[playerId].CamFrontVector[2];
-
-            if (Player::lastPlayerAimSyncData[playerId].AimZ > 1.0f)
-            {
-                Player::lastPlayerAimSyncData[playerId].AimZ = 1.0f;
-            }
-            else if (Player::lastPlayerAimSyncData[playerId].AimZ < -1.0f)
-            {
-                Player::lastPlayerAimSyncData[playerId].AimZ = -1.0f;
-            }
-        }
-
-        if (Player::infiniteAmmo[playerId])
-        {
-            Player::lastPlayerAimSyncData[playerId].CamZoom = 2;
-        }
-
-        bs.reset();
-        Player::lastPlayerAimSyncData[playerId].write(bs);
+        // Storing latest packet data.
+        packet.rewrite(last_bs);
     }
 
-    Player::lastUpdateTick[playerId] = SkyComponent::getCore()->getTickCount();
-    Player::lastSyncPacket[playerId] = SyncTypes::E_AIM_SYNC;
+    // Fix first-person up/down aim sync
+    PlayerWeapon weapon = player_data->GetLastWeapon();
+    if (weapon == PlayerWeapon_Sniper || weapon == PlayerWeapon_RocketLauncher || weapon == PlayerWeapon_HeatSeeker || weapon == PlayerWeapon_Camera) {
 
+        packet.AimZ = -packet.CamFrontVector[2];
+
+        if (packet.AimZ > 1.0f) {
+            packet.AimZ = 1.0f;
+        } else if (packet.AimZ < -1.0f) {
+            packet.AimZ = -1.0f;
+        }
+    }
+
+    if (player_data->GetInfiniteAmmo()) {
+        packet.CamZoom = 2;
+    }
+
+    // Rewriting the incoming packet.
+    packet.rewrite(bs);
+
+    player_data->SetLastSyncType(E_AIM_SYNC);
     return true;
 }
 
-bool VehicleSync::received(IPlayer &peer, NetworkBitStream &bs)
+bool VehicleSync::received(IPlayer& peer, NetworkBitStream& bs)
 {
-    int playerId = peer.getID();
 
-    if (Player::GetSyncFrozenState(playerId, SyncTypes::E_VEHICLE_SYNC) || Player::GetSyncFrozenState(playerId, SyncTypes::E_ALL_SYNC))
-    {
-        bs.reset();
-        Player::lastVehicleSyncData[playerId].write(bs);
-    }
-    else
-    {
-        Player::lastVehicleSyncData[playerId].read(bs);
+    GET_SKY_DATA(peer, true)
+    Packet::PlayerVehicleSync packet;
+    NetworkBitStream& last_bs = player_data->GetSyncBitStream(E_VEHICLE_SYNC);
 
-        if (Player::lastVehicleSyncData[playerId].WeaponID > PlayerWeapon::PlayerWeapon_Parachute || (Player::lastVehicleSyncData[playerId].WeaponID > PlayerWeapon::PlayerWeapon_Moltov && Player::lastVehicleSyncData[playerId].WeaponID < PlayerWeapon::PlayerWeapon_Colt45))
-        {
-            Player::lastVehicleSyncData[playerId].WeaponID = PlayerWeapon::PlayerWeapon_Fist;
-        }
+    if (player_data->IsSyncFrozen(E_VEHICLE_SYNC) || player_data->IsSyncFrozen(E_ALL_SYNC)) {
+        packet.read(last_bs);
+    } else {
+        packet.read(bs);
 
-        if (Player::fakeHealth[playerId] != 255)
-        {
-            Player::lastVehicleSyncData[playerId].PlayerHealthArmour[0] = Player::fakeHealth[playerId];
-        }
-
-        if (Player::fakeArmour[playerId] != 255)
-        {
-            Player::lastVehicleSyncData[playerId].PlayerHealthArmour[1] = Player::fakeArmour[playerId];
-        }
-
-        bs.reset();
-        Player::lastVehicleSyncData[playerId].write(bs);
+        // Storing latest packet data.
+        packet.rewrite(last_bs);
     }
 
-    Player::lastUpdateTick[playerId] = SkyComponent::getCore()->getTickCount();
-    Player::lastSyncPacket[playerId] = SyncTypes::E_VEHICLE_SYNC;
+    if (packet.WeaponID > PlayerWeapon::PlayerWeapon_Parachute || (packet.WeaponID > PlayerWeapon::PlayerWeapon_Moltov && packet.WeaponID < PlayerWeapon::PlayerWeapon_Colt45)) {
+        packet.WeaponID = PlayerWeapon::PlayerWeapon_Fist;
+    }
 
+    if (player_data->GetBlockKeySync()) {
+        packet.Keys = 0;
+    }
+
+    float fake_health = player_data->GetFakeHealth();
+    if (player_data->GetFakeHealth() != 255) {
+        packet.PlayerHealthArmour[0] = fake_health;
+    }
+
+    float fake_armour = player_data->GetFakeArmour();
+    if (fake_armour != 255) {
+        packet.PlayerHealthArmour[1] = fake_armour;
+    }
+
+    player_data->SetLastWeapon(static_cast<PlayerWeapon>(packet.WeaponID));
+
+    // Rewriting the incoming packet.
+    packet.rewrite(bs);
+
+    player_data->SetLastSyncType(E_VEHICLE_SYNC);
     return true;
 }
 
-bool PassengerSync::received(IPlayer &peer, NetworkBitStream &bs)
+bool PassengerSync::received(IPlayer& peer, NetworkBitStream& bs)
 {
-    int playerId = peer.getID();
+    GET_SKY_DATA(peer, true)
+    Packet::PlayerPassengerSync packet;
+    NetworkBitStream& last_bs = player_data->GetSyncBitStream(E_PASSENGER_SYNC);
 
-    if (Player::GetSyncFrozenState(playerId, SyncTypes::E_PASSENGER_SYNC) || Player::GetSyncFrozenState(playerId, SyncTypes::E_ALL_SYNC))
-    {
-        bs.reset();
-        Player::lastPlayerPassengerSyncData[playerId].write(bs);
-    }
-    else
-    {
-        Player::lastPlayerPassengerSyncData[playerId].read(bs);
+    if (player_data->IsSyncFrozen(E_PASSENGER_SYNC) || player_data->IsSyncFrozen(E_ALL_SYNC)) {
+        packet.read(last_bs);
+    } else {
+        packet.read(bs);
 
-        if (Player::lastPlayerPassengerSyncData[playerId].WeaponID > PlayerWeapon::PlayerWeapon_Parachute || (Player::lastPlayerPassengerSyncData[playerId].WeaponID > PlayerWeapon::PlayerWeapon_Moltov && Player::lastPlayerPassengerSyncData[playerId].WeaponID < PlayerWeapon::PlayerWeapon_Colt45))
-        {
-            Player::lastPlayerPassengerSyncData[playerId].WeaponID = PlayerWeapon::PlayerWeapon_Fist;
-        }
-
-        if (Player::fakeHealth[playerId] != 255)
-        {
-            Player::lastPlayerPassengerSyncData[playerId].HealthArmour[0] = Player::fakeHealth[playerId];
-        }
-
-        if (Player::fakeArmour[playerId] != 255)
-        {
-            Player::lastPlayerPassengerSyncData[playerId].HealthArmour[1] = Player::fakeArmour[playerId];
-        }
-
-        bs.reset();
-        Player::lastPlayerPassengerSyncData[playerId].write(bs);
+        // Storing latest packet data.
+        packet.rewrite(last_bs);
     }
 
-    Player::lastUpdateTick[playerId] = SkyComponent::getCore()->getTickCount();
-    Player::lastSyncPacket[playerId] = SyncTypes::E_PASSENGER_SYNC;
+    if (packet.WeaponID > PlayerWeapon::PlayerWeapon_Parachute || (packet.WeaponID > PlayerWeapon::PlayerWeapon_Moltov && packet.WeaponID < PlayerWeapon::PlayerWeapon_Colt45)) {
+        packet.WeaponID = PlayerWeapon::PlayerWeapon_Fist;
+    }
 
+    if (player_data->GetBlockKeySync()) {
+        packet.Keys = 0;
+    }
+
+    float fake_health = player_data->GetFakeHealth();
+    if (player_data->GetFakeHealth() != 255) {
+        packet.HealthArmour[0] = fake_health;
+    }
+
+    float fake_armour = player_data->GetFakeArmour();
+    if (fake_armour != 255) {
+        packet.HealthArmour[1] = fake_armour;
+    }
+
+    player_data->SetLastWeapon(static_cast<PlayerWeapon>(packet.WeaponID));
+
+    // Rewriting the incoming packet.
+    packet.rewrite(bs);
+
+    player_data->SetLastSyncType(E_PASSENGER_SYNC);
     return true;
 }
 
-bool SpectatorSync::received(IPlayer &peer, NetworkBitStream &bs)
+bool SpectatorSync::received(IPlayer& peer, NetworkBitStream& bs)
 {
-    int playerId = peer.getID();
+    GET_SKY_DATA(peer, true)
 
-    if (Player::GetSyncFrozenState(playerId, SyncTypes::E_PASSENGER_SYNC) || Player::GetSyncFrozenState(playerId, SyncTypes::E_ALL_SYNC))
-    {
-        bs.reset();
-        Player::lastPlayerPassengerSyncData[playerId].write(bs);
+    Packet::PlayerPassengerSync packet;
+    NetworkBitStream& last_bs = player_data->GetSyncBitStream(E_SPECTATING_SYNC);
+
+    if (player_data->IsSyncFrozen(E_SPECTATING_SYNC) || player_data->IsSyncFrozen(E_ALL_SYNC)) {
+        packet.read(last_bs);
+
+        // Rewriting the incoming packet.
+        packet.rewrite(bs);
+    } else {
+        // Storing latest packet data.
+        packet.rewrite(last_bs);
     }
-    else
-    {
-        Player::lastPlayerPassengerSyncData[playerId].read(bs);
-    }
 
-    Player::lastUpdateTick[playerId] = SkyComponent::getCore()->getTickCount();
-    Player::lastSyncPacket[playerId] = SyncTypes::E_SPECTATING_SYNC;
-
-    return true;
-}
-
-bool TrailerSync::received(IPlayer &peer, NetworkBitStream &bs)
-{
-    Player::lastUpdateTick[peer.getID()] = SkyComponent::getCore()->getTickCount();
+    player_data->SetLastSyncType(E_SPECTATING_SYNC);
     return true;
 }

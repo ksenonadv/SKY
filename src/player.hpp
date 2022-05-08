@@ -1,39 +1,166 @@
-#ifndef SKY_PLAYER
-#define SKY_PLAYER
+#pragma once
 
-#include "global.hpp"
-#include "values.hpp"
-#include "types.hpp"
 #include "Shared/netcode.hpp"
+#include "types.hpp"
+#include "values.hpp"
 
-namespace Player
-{
-    inline int lastWeapon[PLAYER_POOL_SIZE] = {0};
-    inline float fakeHealth[PLAYER_POOL_SIZE] = {0};
-    inline float fakeArmour[PLAYER_POOL_SIZE] = {0};
-    inline Vector4 *fakeQuat[PLAYER_POOL_SIZE];
-    inline unsigned int lastUpdateTick[PLAYER_POOL_SIZE] = {0};
-    inline bool blockKeySync[PLAYER_POOL_SIZE] = {0};
-    inline bool infiniteAmmo[PLAYER_POOL_SIZE] = {0};
-
-    inline bool syncOnFootDataFrozen[PLAYER_POOL_SIZE] = {0};     // Stores the frozen state for OnFoot Sync
-    inline bool syncAimDataFrozen[PLAYER_POOL_SIZE] = {0};        // Stores the frozen state for Aim Sync
-    inline bool syncVehicleDataFrozen[PLAYER_POOL_SIZE] = {0};    // Stores the frozen state for Vehicle Sync
-    inline bool syncPassengerDataFrozen[PLAYER_POOL_SIZE] = {0};  // Stores the frozen state for Passenger Sync
-    inline bool syncSpectatingDataFrozen[PLAYER_POOL_SIZE] = {0}; // Stores the frozen state for Spectating Sync
-    inline bool syncAllDataFrozen[PLAYER_POOL_SIZE] = {0};
-
-    inline SyncTypes lastSyncPacket[PLAYER_POOL_SIZE] = {SyncTypes::E_PLAYER_SYNC}; // Stores the last packets type
-
-    inline NetCode::Packet::PlayerFootSync lastSyncData[PLAYER_POOL_SIZE];
-    inline NetCode::Packet::PlayerVehicleSync lastVehicleSyncData[PLAYER_POOL_SIZE];
-    inline NetCode::Packet::PlayerAimSync lastPlayerAimSyncData[PLAYER_POOL_SIZE];
-    inline NetCode::Packet::PlayerPassengerSync lastPlayerPassengerSyncData[PLAYER_POOL_SIZE];
-    inline NetCode::Packet::PlayerSpectatorSync lastPlayerSpectateSyncData[PLAYER_POOL_SIZE];
-    inline NetCode::Packet::PlayerTrailerSync lastPlayerTrailerSyncData[PLAYER_POOL_SIZE];
-
-    void SetSyncFrozenState(int playerid, SyncTypes type, bool toggle);
-    bool GetSyncFrozenState(int playerid, SyncTypes type);
+enum PlayerSyncType : uint8_t {
+    E_PLAYER_SYNC = 0,
+    E_AIM_SYNC,
+    E_VEHICLE_SYNC,
+    E_PASSENGER_SYNC,
+    E_SPECTATING_SYNC,
+    E_LAST_SYNC,
+    E_ALL_SYNC
 };
 
-#endif
+constexpr size_t MAX_SYNC_TYPES = PlayerSyncType::E_ALL_SYNC + 1;
+
+class PlayerSKYData : public IExtension {
+public:
+    PROVIDE_EXT_UID(0x2A42FC3C486992BD);
+
+    PlayerSKYData()
+        : health_(255)
+        , armour_(255)
+        , angle_((float)0x7FFFFFFF)
+    {
+        syncFrozen_.fill(false);
+    }
+
+    void SetLastWeapon(PlayerWeapon weapon)
+    {
+        weapon_ = weapon;
+    }
+
+    PlayerWeapon GetLastWeapon() const
+    {
+        return weapon_;
+    }
+
+    void SetFakeHealth(float health)
+    {
+        health_ = health;
+    }
+
+    float GetFakeHealth() const
+    {
+        return health_;
+    }
+
+    void SetFakeArmour(float armour)
+    {
+        armour_ = armour;
+    }
+
+    float GetFakeArmour() const
+    {
+        return armour_;
+    }
+
+    void SetFakeFacingAngle(float angle)
+    {
+        angle_ = angle;
+    }
+
+    bool GetFakeFacingAngle() const
+    {
+        return angle_;
+    }
+
+    TimePoint GetLastSyncTime()
+    {
+        return lastSyncTime_;
+    }
+
+    void SetBlockKeySync(bool value)
+    {
+        blockKeys_ = value;
+    }
+
+    bool GetBlockKeySync() const
+    {
+        return blockKeys_;
+    }
+
+    void SetInfiniteAmmo(bool value)
+    {
+        infAmmo_ = value;
+    }
+
+    bool GetInfiniteAmmo() const
+    {
+        return infAmmo_;
+    }
+
+    bool IsSyncFrozen(PlayerSyncType type) const
+    {
+        return syncFrozen_[type];
+    }
+
+    void SetSyncFrozen(PlayerSyncType type, bool value)
+    {
+        syncFrozen_[type] = value;
+    }
+
+    void SetLastSyncType(PlayerSyncType type)
+    {
+        lastSyncType_ = type;
+        lastSyncTime_ = Time::now();
+    }
+
+    PlayerSyncType GetLastSyncType() const
+    {
+        return lastSyncType_;
+    }
+
+    void SetSyncData(PlayerSyncType type, NetworkBitStream& bs)
+    {
+        syncBitstream_[type] = bs;
+    }
+
+    NetworkBitStream& GetSyncBitStream(PlayerSyncType type)
+    {
+        return syncBitstream_[type];
+    }
+
+    void freeExtension() override
+    {
+        delete this;
+    }
+
+    void reset() override
+    {
+        // Reset data ..
+    }
+
+private:
+    PlayerWeapon weapon_;
+    float health_;
+    float armour_;
+
+    float angle_;
+
+    TimePoint lastSyncTime_;
+    bool blockKeys_;
+    bool infAmmo_;
+
+    std::array<bool, MAX_SYNC_TYPES> syncFrozen_;
+    PlayerSyncType lastSyncType_;
+
+    std::array<NetworkBitStream, E_LAST_SYNC> syncBitstream_;
+};
+
+inline class PlayerEvents : public PlayerEventHandler {
+public:
+    void onConnect(IPlayer& player) override
+    {
+        player.addExtension(new PlayerSKYData(), true);
+    }
+} player_events_;
+
+#define GET_SKY_DATA(peer, fail_ret)                                 \
+    PlayerSKYData* player_data = queryExtension<PlayerSKYData>(peer); \
+    if (player_data == nullptr) {                                     \
+        return fail_ret;                                             \
+    }

@@ -8,127 +8,139 @@
 #include "main.hpp"
 #include "version.hpp"
 
+extern void* pAMXFunctions;
+
 SemanticVersion SkyComponent::componentVersion() const
 {
-	return SemanticVersion(PROJECT_MAJOR, PROJECT_MINOR, PROJECT_PATCH, 0);
+    return SemanticVersion(PROJECT_MAJOR, PROJECT_MINOR, PROJECT_PATCH, 0);
 }
 
-void SkyComponent::onLoad(ICore *c)
+void SkyComponent::onLoad(ICore* c)
 {
-	core_ = c;
-	players_ = &c->getPlayers();
+    // make sure bitstream versions match core
+    if (NetworkBitStream::Version != c->getNetworkBitStreamVersion()) {
+        core_->logLn(LogLevel::Error, "This SKY version was not designed to run with this open.mp build.\n\nPlease update to latest version");
+        return;
+    }
 
-	getCore() = c;
+    core_ = c;
+    players_ = &c->getPlayers();
 
-	// make sure bitstream versions match core
-	if (NetworkBitStream::Version != c->getNetworkBitStreamVersion())
-	{
-		core_->logLn(LogLevel::Error, "Bitstream mismatch from SDK/Core");
-	}
+    getCore() = c;
 
-	// packet handlers
-	core_->addPerPacketInEventHandler<NetCode::Packet::PlayerFootSync::PacketID>(&player_sync_);
-	core_->addPerPacketInEventHandler<NetCode::Packet::PlayerAimSync::PacketID>(&aim_sync_);
-	core_->addPerPacketInEventHandler<NetCode::Packet::PlayerVehicleSync::PacketID>(&vehicle_sync_);
-	core_->addPerPacketInEventHandler<NetCode::Packet::PlayerPassengerSync::PacketID>(&passenger_sync_);
-	core_->addPerPacketInEventHandler<NetCode::Packet::PlayerSpectatorSync::PacketID>(&spectator_sync_);
-	core_->addPerPacketInEventHandler<NetCode::Packet::PlayerTrailerSync::PacketID>(&trailer_sync_);
+    // packet handlers
+    core_->addPerPacketInEventHandler<NetCode::Packet::PlayerFootSync::PacketID>(&player_sync_);
+    core_->addPerPacketInEventHandler<NetCode::Packet::PlayerAimSync::PacketID>(&aim_sync_);
+    core_->addPerPacketInEventHandler<NetCode::Packet::PlayerVehicleSync::PacketID>(&vehicle_sync_);
+    core_->addPerPacketInEventHandler<NetCode::Packet::PlayerPassengerSync::PacketID>(&passenger_sync_);
+    core_->addPerPacketInEventHandler<NetCode::Packet::PlayerSpectatorSync::PacketID>(&spectator_sync_);
 
-	// show version
-	ShowPluginInfo();
+    // show version
+    ShowPluginInfo();
 }
 
-void SkyComponent::onInit(IComponentList *components)
+void SkyComponent::onInit(IComponentList* components)
 {
-	StringView name = componentName();
+    if (!core_) {
+        return;
+    }
 
-	pawn_component_ = components->queryComponent<IPawnComponent>();
-	if (!pawn_component_)
-	{
-		core_->logLn(LogLevel::Error,
-					 "Error loading component %.*s: Pawn component not loaded",
-					 name.length(), name.data());
+    StringView name = componentName();
 
-		return;
-	}
+    pawn_component_ = components->queryComponent<IPawnComponent>();
+    if (!pawn_component_) {
+        core_->logLn(LogLevel::Error,
+            "Error loading component %.*s: Pawn component not loaded",
+            name.length(), name.data());
 
-	textdraw_component_ = components->queryComponent<ITextDrawsComponent>();
-	if (!textdraw_component_)
-	{
-		core_->logLn(LogLevel::Error,
-					 "Error loading component %.*s: Textdraw component not loaded",
-					 name.length(), name.data());
+        return;
+    }
 
-		return;
-	}
+    textdraw_component_ = components->queryComponent<ITextDrawsComponent>();
+    if (!textdraw_component_) {
+        core_->logLn(LogLevel::Error,
+            "Error loading component %.*s: Textdraw component not loaded",
+            name.length(), name.data());
 
-	pawn_component_->getEventDispatcher().addEventHandler(this);
-	players_->getEventDispatcher().addEventHandler(this);
+        return;
+    }
+
+    pawn_component_->getEventDispatcher().addEventHandler(this);
+    pAMXFunctions = (void*)&pawn_component_->getAmxFunctions();
+    players_->getEventDispatcher().addEventHandler(&player_events_);
 }
 
-void SkyComponent::onAmxLoad(void *amx)
+void SkyComponent::onAmxLoad(void* amx)
 {
-	InitScripting((AMX *)amx);
+    InitScripting((AMX*)amx);
 };
 
-void SkyComponent::onAmxUnload(void *amx){};
+void SkyComponent::onAmxUnload(void* amx) {};
 
-void SkyComponent::onFree(IComponent *component)
+void SkyComponent::onFree(IComponent* component)
 {
-	if (component == pawn_component_ || component == this)
-	{
-		pawn_component_ = nullptr;
-	}
+    if (component == pawn_component_ || component == this) {
+        pawn_component_ = nullptr;
+    }
 }
 
-void SkyComponent::reset() {}
+void SkyComponent::reset() { }
 
 void SkyComponent::free()
 {
-	if (pawn_component_)
-	{
-		pawn_component_->getEventDispatcher().removeEventHandler(this);
-		players_->getEventDispatcher().removeEventHandler(this);
-	}
+    if (pawn_component_) {
+        pawn_component_->getEventDispatcher().removeEventHandler(this);
+        players_->getEventDispatcher().addEventHandler(&player_events_);
+    }
 
-	// packet handlers
-	core_->removePerPacketInEventHandler<NetCode::Packet::PlayerFootSync::PacketID>(&player_sync_);
-	core_->removePerPacketInEventHandler<NetCode::Packet::PlayerAimSync::PacketID>(&aim_sync_);
-	core_->removePerPacketInEventHandler<NetCode::Packet::PlayerVehicleSync::PacketID>(&vehicle_sync_);
-	core_->removePerPacketInEventHandler<NetCode::Packet::PlayerPassengerSync::PacketID>(&passenger_sync_);
-	core_->removePerPacketInEventHandler<NetCode::Packet::PlayerSpectatorSync::PacketID>(&spectator_sync_);
-	core_->removePerPacketInEventHandler<NetCode::Packet::PlayerTrailerSync::PacketID>(&trailer_sync_);
+    // packet handlers
+    core_->removePerPacketInEventHandler<NetCode::Packet::PlayerFootSync::PacketID>(&player_sync_);
+    core_->removePerPacketInEventHandler<NetCode::Packet::PlayerAimSync::PacketID>(&aim_sync_);
+    core_->removePerPacketInEventHandler<NetCode::Packet::PlayerVehicleSync::PacketID>(&vehicle_sync_);
+    core_->removePerPacketInEventHandler<NetCode::Packet::PlayerPassengerSync::PacketID>(&passenger_sync_);
+    core_->removePerPacketInEventHandler<NetCode::Packet::PlayerSpectatorSync::PacketID>(&spectator_sync_);
 
-	delete this;
+    delete this;
 }
 
-void SkyComponent::Log(LogLevel level, const char *fmt, ...)
+void SkyComponent::provideConfiguration(ILogger& logger, IEarlyConfig& config, bool defaults)
 {
-	auto core = getCore();
-	if (!core)
-	{
-		return;
-	}
-
-	va_list args{};
-	va_start(args, fmt);
-	core->vlogLn(level, fmt, args);
-	va_end(args);
+    if (defaults) {
+        config.setInt("SKY.enable_knife_sync", 0);
+        config.setInt("SKY.disable_sync_bugs", 0);
+    } else {
+        config.setInt("SKY.enable_knife_sync", 0);
+        config.setInt("SKY.disable_sync_bugs", 0);
+    }
 }
 
-ITextDrawsComponent *&SkyComponent::getTextDraws()
+void SkyComponent::Log(LogLevel level, const char* fmt, ...)
 {
-	static ITextDrawsComponent *textdraws{};
-	return textdraws;
+    auto core = getCore();
+
+    if (!core) {
+        return;
+    }
+
+    va_list args {};
+    va_start(args, fmt);
+    core->vlogLn(level, fmt, args);
+    va_end(args);
 }
 
-ICore *&SkyComponent::getCore()
+ITextDrawsComponent*& SkyComponent::getTextDraws()
 {
-	static ICore *core{};
-	return core;
+    static ITextDrawsComponent* textdraws {};
+    return textdraws;
+}
+
+ICore*& SkyComponent::getCore()
+{
+    static ICore* core {};
+    return core;
 }
 
 COMPONENT_ENTRY_POINT()
 {
-	return new SkyComponent();
+    return new SkyComponent();
 }
